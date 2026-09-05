@@ -33,20 +33,37 @@ varying vec2 vUv;
 
 void main() {
   float m = texture2D(uMask, vUv).r;
+  // Maska jest miękko wtapiana i w rdzeniu nie dochodzi do bieli – średnia
+  // w rejonie włosów to ~0.18. Bez rozciągnięcia realna amplituda spada
+  // do jednej piątej i fala ginie.
+  m = smoothstep(0.05, 0.60, m);
 
-  // trzy sinusy o różnych okresach – nieregularny, "włosowy" ruch
+  // trzy sinusy o różnych okresach – nieregularny, "włosowy" ruch.
+  // Okresy dobrane do wysokości maski (vUv.y 0.05–0.35): przy 9.0 mieściło
+  // się tam 0,43 okresu, czyli przesuw całej masy w bok zamiast fali.
   float w =
-      sin(vUv.y *  9.0 + uTime * 0.85) * 0.60
-    + sin(vUv.y * 17.0 - uTime * 1.35) * 0.20
-    + sin(vUv.x *  6.0 + uTime * 0.60) * 0.20;
+      sin(vUv.y * 28.0 + uTime * 0.85) * 0.60
+    + sin(vUv.y * 46.0 - uTime * 1.35) * 0.20
+    + sin(vUv.x * 10.0 + uTime * 0.60) * 0.20;
 
   float wy = sin(vUv.x * 8.0 + uTime * 1.05) * 0.30
            + sin(vUv.y * 5.0 - uTime * 0.75) * 0.18;
 
-  vec2 off = vec2(w * 0.011, wy * 0.004) * m * uAmp;
+  vec2 off = vec2(w * 0.019, wy * 0.007) * m * uAmp;
 
   vec2 uv = clamp(vUv + off, 0.001, 0.999);
-  gl_FragColor = mix(texture2D(uTex, uv), texture2D(uTex2, uv), uMix);
+  vec4 c = mix(texture2D(uTex, uv), texture2D(uTex2, uv), uMix);
+
+  // Tekstury są wgrywane jako premultiplied, więc kolor prosty to rgb/a.
+  // Półprzezroczysta obwódka ma wypaloną oliwkę po kluczu (stałe rgb ~106,82,30
+  // niezależnie od alfy) – tłumimy w niej zieleń do średniej R i B. Powyżej
+  // 0.98 alfy nie ruszamy, bo w teksturze są prawdziwe zielone liście.
+  vec3 straight = c.rgb / max(c.a, 0.0039);
+  float cap = (straight.r + straight.b) * 0.5 * 1.06;
+  float halo = 1.0 - smoothstep(0.75, 0.98, c.a);
+  straight.g = mix(straight.g, min(straight.g, cap), halo);
+
+  gl_FragColor = vec4(straight * c.a, c.a);
 }`;
 
 function compile(gl: WebGLRenderingContext, type: number, src: string) {
@@ -60,14 +77,18 @@ function compile(gl: WebGLRenderingContext, type: number, src: string) {
   return s;
 }
 
-function texFromImage(gl: WebGLRenderingContext, img: HTMLImageElement) {
+function texFromImage(gl: WebGLRenderingContext, img: HTMLImageElement, premultiply = false) {
   const t = gl.createTexture()!;
   gl.bindTexture(gl.TEXTURE_2D, t);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  // Premultiplied: dzięki temu LINEAR interpoluje na brzegu włosa kolory
+  // ważone alfą, a nie surowe rgb pikseli przezroczystych (te niosą oliwkę).
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, premultiply);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
   return t;
 }
 
@@ -109,7 +130,6 @@ export default function HairCanvas({
 
     const gl = canvas.getContext('webgl', {
       alpha: true,
-      premultipliedAlpha: false,
       antialias: false,
     });
     if (!gl) {
@@ -162,8 +182,8 @@ export default function HairCanvas({
         gl.enableVertexAttribArray(loc);
         gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
-        const tTex = texFromImage(gl, imgTex);
-        const tTex2 = texFromImage(gl, imgTex2);
+        const tTex = texFromImage(gl, imgTex, true);
+        const tTex2 = texFromImage(gl, imgTex2, true);
         const tMask = texFromImage(gl, imgMask);
 
         gl.activeTexture(gl.TEXTURE0);
@@ -181,7 +201,10 @@ export default function HairCanvas({
         const uMix = gl.getUniformLocation(program, 'uMix');
 
         gl.enable(gl.BLEND);
-        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        // Shader oddaje kolor premultiplied, więc źródło wchodzi z ONE.
+        // Z SRC_ALPHA przy premultipliedAlpha:false kompozytor mnożył przez
+        // alfę drugi raz i pasemka gasły w tło.
+        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         gl.clearColor(0, 0, 0, 0);
 
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
