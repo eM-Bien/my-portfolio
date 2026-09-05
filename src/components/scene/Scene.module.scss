@@ -1,0 +1,259 @@
+@use '../../styles/tokens' as t;
+
+.hero {
+  position: relative;
+  height: 340vh; // długość scrolla dla całej choreografii
+  background: t.$ink;
+}
+
+.stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+  backface-visibility: hidden;
+
+  img {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+/* --- niebo ---------------------------------------------------------- */
+.sky {
+  z-index: 1;
+  transform-origin: 50% 55%;
+
+  &::after {
+    // przyciemnienie góry, żeby tytuł się czytał
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(15, 13, 10, 0.72) 0%,
+      rgba(15, 13, 10, 0.15) 42%,
+      rgba(15, 13, 10, 0.55) 100%
+    );
+  }
+}
+
+/* --- drzewa (rama lewa/prawa) --------------------------------------- */
+.trees {
+  z-index: 2;
+  transform-origin: 50% 30%;
+
+  img {
+    object-fit: cover;
+    object-position: 50% 0%;
+    filter: brightness(0.82) saturate(0.95);
+  }
+}
+
+/* --- postać ---------------------------------------------------------- */
+.figureWrap {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  align-items: end;
+  justify-items: end;
+  padding-right: clamp(1rem, 6vw, 6rem);
+  transform-origin: 72% 70%; // kamera wjeżdża w postać, nie w środek kadru
+  will-change: transform;
+}
+
+.figure {
+  position: relative;
+  height: 88vh;
+  aspect-ratio: 1024 / 1536;
+  filter: drop-shadow(0 30px 60px rgba(0, 0, 0, 0.55));
+}
+
+.figureImg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Namalowane jabłko jest wymazane z grafiki, więc w kadrze zostaje tylko to
+   z liściem. Rozmiar i pozycja NIE są dobrane na oko – to wynik przeszukania
+   (skala × przesunięcie) najmniejszej wartości, przy której dziura po
+   wymazanym jabłku jest zakryta co do piksela. Przy 14,8% zostawało 464 px
+   odsłoniętego tła, przy 16,5% zero. Te trzy liczby zmienia się razem. */
+.apple {
+  position: absolute;
+  left: 2.963%;
+  top: 41.513%;
+  width: 16.53%;
+  height: auto;
+  transform-origin: 55.3% 58.5%; // środek owocu, nie środek pliku
+  will-change: transform;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5));
+}
+
+/* dłoń z oryginału – ta sama siatka co postać, więc nakłada się 1:1 */
+.handFront {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* --- krzewy na pierwszym planie -------------------------------------- */
+.foliage {
+  z-index: 6; // nad winietą – krzaki są ostatnią rzeczą, którą mija kamera
+  transform-origin: 50% 100%;
+
+  // Grafika jest 2171x719 z pustym środkiem. `cover` wykadrowałoby tę pustkę
+  // i krzaki zniknęłyby z kadru – kotwiczymy ją na dole w pełnej szerokości.
+  img {
+    top: auto;
+    bottom: -4%;
+    left: 50%;
+    width: 128%;
+    height: auto;
+    object-fit: contain;
+    transform: translateX(-50%);
+    filter: brightness(0.58) saturate(0.95);
+  }
+}
+
+/* Druga kopia krzewów – "bliższa" kamerze. Przesunięta w bok tak, żeby
+   gęsta masa lewego krzaka wypadła na środku kadru; to ona pochłania widok
+   na końcu przejazdu. Startuje pod dolną krawędzią, więc jej nie widać. */
+.foliageNear {
+  z-index: 7;
+  transform-origin: 50% 100%;
+  opacity: 0;
+
+  // left/width dobrane tak, żeby gęsta masa lewego krzaka wypadła
+  // na środku viewportu (10% + 0.17 * 210% ≈ 46%), a nie za jego krawędzią.
+  img {
+    top: auto;
+    bottom: -18%;
+    left: 10%;
+    width: 210%;
+    height: auto;
+    object-fit: contain;
+    filter: brightness(0.4) saturate(0.85) blur(3px);
+  }
+}
+
+/* przyciemnienie pod tytułem – nad postacią, pod tekstem */
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  // tekst siedzi po lewej, więc i przyciemnienie idzie w bok, nie w dół
+  background: linear-gradient(
+    to right,
+    rgba(15, 13, 10, 0.88) 0%,
+    rgba(15, 13, 10, 0.62) 30%,
+    rgba(15, 13, 10, 0.12) 55%,
+    rgba(15, 13, 10, 0) 70%
+  );
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at 50% 60%,
+    rgba(15, 13, 10, 0) 20%,
+    rgba(15, 13, 10, 0.9) 75%,
+    t.$ink 100%
+  );
+}
+
+/* --- tytuł ------------------------------------------------------------ */
+.title {
+  position: absolute;
+  z-index: 8;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  // wyśrodkowanie flexem, nie translateY – GSAP animuje `y` na tym elemencie
+  // i nadpisałby transform z CSS-a
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  width: min(46%, 34rem);
+  min-width: 18rem;
+  text-align: left;
+  padding-left: clamp(1.5rem, 6vw, 6rem);
+  padding-right: 1.5rem;
+  pointer-events: none;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.8);
+
+  h1 {
+    @include t.fluid(2.5rem, 5rem);
+    color: t.$cream;
+  }
+}
+
+.kicker {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: t.$gold;
+}
+
+.lede {
+  margin: 1.5rem 0 0;
+  max-width: 34ch;
+  color: rgba(239, 227, 207, 0.78);
+}
+
+@media (max-width: 900px) {
+  .hero { height: 300vh; }
+  .figure { height: 62vh; }
+
+  // na wąskim ekranie układ obok siebie się nie mieści – tekst wraca na górę,
+  // postać na dół i na środek
+  .figureWrap {
+    justify-items: center;
+    padding-right: 0;
+    transform-origin: 50% 74%;
+  }
+
+  .title {
+    inset: 0 0 auto 0;
+    width: 100%;
+    min-width: 0;
+    display: block;
+    padding: clamp(3rem, 10vh, 6rem) t.$gutter 0;
+    text-align: center;
+  }
+
+  .lede { margin-inline: auto; }
+
+  .scrim {
+    background: linear-gradient(
+      to bottom,
+      rgba(15, 13, 10, 0.85) 0%,
+      rgba(15, 13, 10, 0.5) 30%,
+      rgba(15, 13, 10, 0) 58%
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero { height: 100vh; }
+  .apple { opacity: 1; }
+}

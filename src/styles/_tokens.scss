@@ -1,0 +1,39 @@
+@use 'sass:math';
+
+// Paleta wyciągnięta z assetów: ciepłe złoto nieba, kora, zieleń liści, czerwień jabłka.
+$ink:        #0f0d0a;
+$ink-soft:   #1a1611;
+$bark:       #6b4a2c;
+$gold:       #c99b4e;
+$gold-lite:  #e8c98a;
+$cream:      #efe3cf;
+$leaf:       #4a5f31;
+$apple:      #b32b23;
+
+$max:        1180px;
+$gutter:     clamp(1.25rem, 4vw, 3rem);
+
+// Typografia – placeholdery, fonty do podmiany później
+$font-display: Georgia, 'Times New Roman', serif;
+$font-body:    system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+@mixin container {
+  width: 100%;
+  max-width: $max;
+  margin-inline: auto;
+  padding-inline: $gutter;
+}
+
+// Skalowanie typografii między $minvw a $maxvw.
+// Uwaga: `clamp(a, calc(a + (b - a) * 0.6), b)` NIE jest płynne – środkowy
+// człon nie zależy od viewportu, więc zawsze wychodzi ta sama wartość.
+// Tu środek to prosta y = b + s*100vw, policzona w Sassie.
+@function strip($n) {
+  @return math.div($n, ($n * 0 + 1));
+}
+
+@mixin fluid($min, $max, $minvw: 24rem, $maxvw: 90rem) {
+  $s: math.div(strip($max) - strip($min), strip($maxvw) - strip($minvw));
+  $b: strip($min) - $s * strip($minvw);
+  font-size: clamp(#{$min}, #{$b}rem + #{$s * 100}vw, #{$max});
+}
