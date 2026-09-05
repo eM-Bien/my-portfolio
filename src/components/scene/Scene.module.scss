@@ -52,10 +52,21 @@
   z-index: 2;
   transform-origin: 50% 30%;
 
+  // Perspektywa musi siedzieć na rodzicu, nie na obrazku: bez niej rotateX
+  // jest rzutem równoległym i kładzenie się czyta jak zwykłe ściśnięcie
+  // w pionie, bez cofania górnej krawędzi w głąb.
+  // Punkt zbiegu niżej niż środek – linia horyzontu sceny jest pod nim.
+  perspective: 1100px;
+  perspective-origin: 50% 62%;
+
   img {
     object-fit: cover;
     object-position: 50% 0%;
     filter: brightness(0.82) saturate(0.95);
+    // Zawias przy ziemi, nie w środku kadru – inaczej drzewa przy kładzeniu
+    // zapadają się w siebie zamiast padać na wznak.
+    transform-origin: 50% 100%;
+    will-change: transform, opacity;
   }
 }
 

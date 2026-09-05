@@ -14,6 +14,7 @@ gsap.registerPlugin(ScrollTrigger);
  *   0.10–0.44  jabłko odrywa się od gałęzi i spada łukiem do dłoni
  *   0.44–0.50  odbicie / squash przy złapaniu
  *   0.46–1.00  kamera wjeżdża w scenę i przechodzi za krzaki
+ *   0.50–0.92  drzewa kładą się do tyłu jak papierowa kulisa
  *
  * Pin robi CSS `position: sticky` – nie ScrollTrigger. Mniej DOM-u,
  * brak pin-spacera, brak skoków przy resize.
@@ -109,6 +110,32 @@ export default function Scene() {
         )
         .to(`.${s.vignette}`, { opacity: 1, duration: dur * 0.8 }, push + dur * 0.2)
         .to(`.${s.scrim}`, { opacity: 0, duration: 0.12 }, push);
+
+      // --- drzewa kładą się do tyłu, jak papierowa kulisa ---------------
+      // Zawias przy dolnej krawędzi i perspektywa są w SCSS – tu zostaje sam kąt.
+      // Start po złapaniu jabłka: wcześniej ruch konkurowałby ze spadkiem.
+      // power1.in: papier stoi na krawędzi i przyspiesza za punktem równowagi,
+      // ale łagodniej niż power2 – ta przy foldDur 0.42 dawała 9° na 70% odcinka
+      // i całe przewrócenie upchane w ostatnie 15% scrolla.
+      const fold = 0.5;
+      const foldDur = 0.42;
+
+      tl.to(`.${s.trees} img`, { rotationX: 88, duration: foldDur, ease: 'power1.in' }, fold)
+        // odwraca się od światła – filtr trzeba podać w całości, bo GSAP
+        // nadpisuje inline'em cały `filter` z CSS-a
+        .fromTo(
+          `.${s.trees} img`,
+          { filter: 'brightness(0.82) saturate(0.95)' },
+          {
+            filter: 'brightness(0.3) saturate(0.95)',
+            duration: foldDur * 0.8,
+            ease: 'power1.in',
+          },
+          fold
+        )
+        // przy ~88° zostaje kreska szerokości piksela; gasimy ją zamiast
+        // czekać, aż dojedzie do pełnych 90°
+        .to(`.${s.trees} img`, { autoAlpha: 0, duration: foldDur * 0.22 }, fold + foldDur * 0.78);
 
       // bliższe krzewy wjeżdżają od dołu i zamykają kadr
       tl.fromTo(
