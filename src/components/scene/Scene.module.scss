@@ -191,7 +191,8 @@
 }
 
 /* --- tytuł ------------------------------------------------------------ */
-.title {
+.title,
+.title2 {
   position: absolute;
   z-index: 8;
   left: 0;
@@ -231,6 +232,17 @@
   color: rgba(239, 227, 207, 0.78);
 }
 
+/* Drugi napis wchodzi, gdy pierwszy schodzi. Ukryty w CSS, nie przez
+   gsap.set() poza timeline'em: przy prefers-reduced-motion efekt kończy się
+   przed ustawieniem stanu startowego i oba bloki nałożyłyby się na siebie
+   w tym samym miejscu kadru. Skutek uboczny: przy zredukowanym ruchu scena
+   zostaje statycznym plakatem z pierwszym napisem – tak samo jak jabłko
+   zostaje w dłoni. */
+.title2 {
+  opacity: 0;
+  visibility: hidden;
+}
+
 @media (max-width: 900px) {
   .hero { height: 300vh; }
   .figure { height: 62vh; }
@@ -243,7 +255,8 @@
     transform-origin: 50% 74%;
   }
 
-  .title {
+  .title,
+  .title2 {
     inset: 0 0 auto 0;
     width: 100%;
     min-width: 0;

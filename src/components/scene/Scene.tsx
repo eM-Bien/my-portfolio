@@ -10,7 +10,8 @@ gsap.registerPlugin(ScrollTrigger);
 
 /**
  * Choreografia scrolla (progress 0 -> 1 na wysokości sekcji):
- *   0.00–0.25  tytuł wchodzi i znika
+ *   0.00–0.20  tytuł wchodzi i znika
+ *   0.20–0.50  drugi napis wchodzi i schodzi przed wjazdem kamery
  *   0.10–0.44  jabłko odrywa się od gałęzi i spada łukiem do dłoni
  *   0.44–0.50  odbicie / squash przy złapaniu
  *   0.46–1.00  kamera wjeżdża w scenę i przechodzi za krzaki
@@ -59,6 +60,17 @@ export default function Scene() {
         { autoAlpha: 1, y: 0, duration: 1.1, ease: 'power2.out', delay: 0.2 }
       );
       tl.to(`.${s.title}`, { autoAlpha: 0, y: -40, duration: 0.14 }, 0.06);
+
+      // --- drugi napis: wchodzi, gdy pierwszy schodzi -------------------
+      // Pierwszy gaśnie 0.06–0.20, więc wejście na 0.20 daje styk bez chwili,
+      // w której widać oba naraz. Schodzi na 0.42, czyli przed wjazdem kamery
+      // (0.46) – inaczej jechałby razem z kadrem i rozmywał się z krzakami.
+      tl.fromTo(
+        `.${s.title2}`,
+        { autoAlpha: 0, y: 30 },
+        { autoAlpha: 1, y: 0, duration: 0.1, ease: 'power2.out' },
+        0.2
+      ).to(`.${s.title2}`, { autoAlpha: 0, y: -40, duration: 0.08 }, 0.42);
 
       // --- jabłko: spadek łukiem do dłoni --------------------------------
       tl.fromTo(`.${s.apple}`, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.03 }, 0.1)
@@ -209,6 +221,16 @@ export default function Scene() {
           </h1>
           <p className={s.lede}>
             Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+          </p>
+        </div>
+
+        {/* Osobny blok, nie podmiana treści w tym samym: przenikanie wymaga
+            obu napisów w DOM naraz. */}
+        <div className={s.title2}>
+          <p className={s.kicker}>Dolor sit amet</p>
+          <h1>Tempor incididunt</h1>
+          <p className={s.lede}>
+            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
           </p>
         </div>
       </div>
