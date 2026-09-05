@@ -3,14 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * Renderuje postać w canvasie WebGL i faluje włosami przez displacement
- * sterowany maską (hairmask.png: białe = faluje, czarne = stoi).
- *
- * Dlaczego WebGL a nie SVG feTurbulence: filtr SVG na elemencie ~1000px
- * jest rasteryzowany na CPU co klatkę i zjada budżet ramki. Tu displacement
- * liczy GPU w shaderze, koszt jest praktycznie zerowy.
- *
- * Fallback: brak WebGL / prefers-reduced-motion -> zwykły <img>.
+ * Postać w canvasie WebGL: displacement włosów sterowany maską, przenikanie
+ * między dwiema teksturami dłoni. Fallback na `<img>` bez WebGL i przy
+ * prefers-reduced-motion. Uzasadnienie liczb i tor alfy — `docs/scena.md`.
  */
 
 const VERT = `
@@ -33,14 +28,9 @@ varying vec2 vUv;
 
 void main() {
   float m = texture2D(uMask, vUv).r;
-  // Maska jest miękko wtapiana i w rdzeniu nie dochodzi do bieli – średnia
-  // w rejonie włosów to ~0.18. Bez rozciągnięcia realna amplituda spada
-  // do jednej piątej i fala ginie.
   m = smoothstep(0.05, 0.60, m);
 
-  // trzy sinusy o różnych okresach – nieregularny, "włosowy" ruch.
-  // Okresy dobrane do wysokości maski (vUv.y 0.05–0.35): przy 9.0 mieściło
-  // się tam 0,43 okresu, czyli przesuw całej masy w bok zamiast fali.
+  // okresy są dobrane do zasięgu maski (vUv.y 0.05–0.35)
   float w =
       sin(vUv.y * 28.0 + uTime * 0.85) * 0.60
     + sin(vUv.y * 46.0 - uTime * 1.35) * 0.20
@@ -54,10 +44,7 @@ void main() {
   vec2 uv = clamp(vUv + off, 0.001, 0.999);
   vec4 c = mix(texture2D(uTex, uv), texture2D(uTex2, uv), uMix);
 
-  // Tekstury są wgrywane jako premultiplied, więc kolor prosty to rgb/a.
-  // Półprzezroczysta obwódka ma wypaloną oliwkę po kluczu (stałe rgb ~106,82,30
-  // niezależnie od alfy) – tłumimy w niej zieleń do średniej R i B. Powyżej
-  // 0.98 alfy nie ruszamy, bo w teksturze są prawdziwe zielone liście.
+  // despill oliwkowej obwódki, bramkowany alfą (liście muszą zostać zielone)
   vec3 straight = c.rgb / max(c.a, 0.0039);
   float cap = (straight.r + straight.b) * 0.5 * 1.06;
   float halo = 1.0 - smoothstep(0.75, 0.98, c.a);
@@ -84,8 +71,6 @@ function texFromImage(gl: WebGLRenderingContext, img: HTMLImageElement, premulti
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  // Premultiplied: dzięki temu LINEAR interpoluje na brzegu włosa kolory
-  // ważone alfą, a nie surowe rgb pikseli przezroczystych (te niosą oliwkę).
   gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, premultiply);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
   gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
@@ -201,9 +186,6 @@ export default function HairCanvas({
         const uMix = gl.getUniformLocation(program, 'uMix');
 
         gl.enable(gl.BLEND);
-        // Shader oddaje kolor premultiplied, więc źródło wchodzi z ONE.
-        // Z SRC_ALPHA przy premultipliedAlpha:false kompozytor mnożył przez
-        // alfę drugi raz i pasemka gasły w tło.
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         gl.clearColor(0, 0, 0, 0);
 
@@ -212,7 +194,6 @@ export default function HairCanvas({
         canvas.height = Math.round(height * dpr);
         gl.viewport(0, 0, canvas.width, canvas.height);
 
-        // pauzujemy render, gdy postać jest poza ekranem
         let visible = true;
         const io = new IntersectionObserver(
           ([e]) => {
@@ -228,8 +209,6 @@ export default function HairCanvas({
           if (!visible) return;
           gl.clear(gl.COLOR_BUFFER_BIT);
           gl.uniform1f(uTime, (now - t0) / 1000);
-          // na wąskich ekranach postać jest mała – ta sama amplituda
-          // czyta się tam jako "robaki", nie jako włosy
           gl.uniform1f(uAmp, window.innerWidth < 700 ? 0.6 : 1.0);
           gl.uniform1f(uMix, mixRef?.current ?? 0);
           gl.drawArrays(gl.TRIANGLES, 0, 6);

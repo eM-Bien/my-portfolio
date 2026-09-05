@@ -52,10 +52,7 @@
   z-index: 2;
   transform-origin: 50% 30%;
 
-  // Perspektywa musi siedzieć na rodzicu, nie na obrazku: bez niej rotateX
-  // jest rzutem równoległym i kładzenie się czyta jak zwykłe ściśnięcie
-  // w pionie, bez cofania górnej krawędzi w głąb.
-  // Punkt zbiegu niżej niż środek – linia horyzontu sceny jest pod nim.
+  // perspektywa musi być na rodzicu, nie na obrazku
   perspective: 1100px;
   perspective-origin: 50% 62%;
 
@@ -63,9 +60,7 @@
     object-fit: cover;
     object-position: 50% 0%;
     filter: brightness(0.82) saturate(0.95);
-    // Zawias przy ziemi, nie w środku kadru – inaczej drzewa przy kładzeniu
-    // zapadają się w siebie zamiast padać na wznak.
-    transform-origin: 50% 100%;
+    transform-origin: 50% 100%; // zawias przy ziemi
     will-change: transform, opacity;
   }
 }
@@ -95,11 +90,8 @@
   height: 100%;
 }
 
-/* Namalowane jabłko jest wymazane z grafiki, więc w kadrze zostaje tylko to
-   z liściem. Rozmiar i pozycja NIE są dobrane na oko – to wynik przeszukania
-   (skala × przesunięcie) najmniejszej wartości, przy której dziura po
-   wymazanym jabłku jest zakryta co do piksela. Przy 14,8% zostawało 464 px
-   odsłoniętego tła, przy 16,5% zero. Te trzy liczby zmienia się razem. */
+/* Te cztery wartości są powiązane i zmienia się je RAZEM – zmiana samej
+   szerokości odsłania dziurę w dłoni. Wyliczenie w `docs/scena.md`, „Jabłko”. */
 .apple {
   position: absolute;
   left: 2.963%;
@@ -125,8 +117,7 @@
   z-index: 6; // nad winietą – krzaki są ostatnią rzeczą, którą mija kamera
   transform-origin: 50% 100%;
 
-  // Grafika jest 2171x719 z pustym środkiem. `cover` wykadrowałoby tę pustkę
-  // i krzaki zniknęłyby z kadru – kotwiczymy ją na dole w pełnej szerokości.
+  // `contain`, nie `cover` – grafika ma pusty środek
   img {
     top: auto;
     bottom: -4%;
@@ -139,16 +130,12 @@
   }
 }
 
-/* Druga kopia krzewów – "bliższa" kamerze. Przesunięta w bok tak, żeby
-   gęsta masa lewego krzaka wypadła na środku kadru; to ona pochłania widok
-   na końcu przejazdu. Startuje pod dolną krawędzią, więc jej nie widać. */
+/* Druga kopia krzewów, bliższa kamerze – zamyka przejazd. */
 .foliageNear {
   z-index: 7;
   transform-origin: 50% 100%;
   opacity: 0;
 
-  // left/width dobrane tak, żeby gęsta masa lewego krzaka wypadła
-  // na środku viewportu (10% + 0.17 * 210% ≈ 46%), a nie za jego krawędzią.
   img {
     top: auto;
     bottom: -18%;
@@ -198,8 +185,7 @@
   left: 0;
   top: 0;
   bottom: 0;
-  // wyśrodkowanie flexem, nie translateY – GSAP animuje `y` na tym elemencie
-  // i nadpisałby transform z CSS-a
+  // flexem, nie translateY – GSAP animuje `y` na tym elemencie
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -232,12 +218,7 @@
   color: rgba(239, 227, 207, 0.78);
 }
 
-/* Drugi napis wchodzi, gdy pierwszy schodzi. Ukryty w CSS, nie przez
-   gsap.set() poza timeline'em: przy prefers-reduced-motion efekt kończy się
-   przed ustawieniem stanu startowego i oba bloki nałożyłyby się na siebie
-   w tym samym miejscu kadru. Skutek uboczny: przy zredukowanym ruchu scena
-   zostaje statycznym plakatem z pierwszym napisem – tak samo jak jabłko
-   zostaje w dłoni. */
+/* Ukryty w CSS, nie przez gsap.set() – powód w `docs/scena.md`. */
 .title2 {
   opacity: 0;
   visibility: hidden;

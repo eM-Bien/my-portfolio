@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# my-portfolio
 
-## Getting Started
+Portfolio jednostronicowe. Sekcja hero to warstwowa scena sterowana scrollem
+(WebGL + GSAP ScrollTrigger); pod nią sekcje o mnie, wartość, realizacje, kontakt.
 
-First, run the development server:
+## Stack
+
+Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · SCSS modules · GSAP 3.15.
+
+## Uruchomienie
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
+npm run build
+npm run start
+npm run lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Struktura
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/
+  app/          trasy i style globalne
+  components/
+    scene/      sekcja hero – scena WebGL + timeline GSAP
+    sections/   sekcje pod hero
+  content/      teksty i dane (typowany moduł TS, PL/EN)
+  styles/       tokeny, miksiny
+public/scene/   assety sceny (webp + maska png)
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Dokumentacja
 
-## Learn More
+`docs/` jest poza repo (lokalne notatki). `docs/scena.md` opisuje scenę hero:
+tabelę choreografii, uzasadnienie liczb i listę podejść, które nie zadziałały.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Przed zmianą wartości w `.apple` w `Scene.module.scss` przeczytaj sekcję „Jabłko” —
+te liczby są ze sobą powiązane i zmiana jednej odsłania dziurę w dłoni.
+Po zmianach w scenie sam `npm run build` nie wystarcza: trzeba obejrzeć render,
+bo testy typów nie wyłapią tego, że coś zniknęło z kadru.

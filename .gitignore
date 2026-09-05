@@ -40,6 +40,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# instrukcje projektowe i notatki — lokalne, poza repo
-/CLAUDE.md
+# notatki projektowe — lokalne, poza repo
 /docs/
